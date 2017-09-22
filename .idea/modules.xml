@@ -3,8 +3,12 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Android-VideoChat-master.iml" filepath="$PROJECT_DIR$/Android-VideoChat-master.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Android-VideoChat-master.iml" filepath="$PROJECT_DIR$/Android-VideoChat-master.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/receive/receive.iml" filepath="$PROJECT_DIR$/receive/receive.iml" />
+      <module fileurl="file://$PROJECT_DIR$/receive/receive.iml" filepath="$PROJECT_DIR$/receive/receive.iml" />
+      <module fileurl="file://$PROJECT_DIR$/send/send.iml" filepath="$PROJECT_DIR$/send/send.iml" />
       <module fileurl="file://$PROJECT_DIR$/send/send.iml" filepath="$PROJECT_DIR$/send/send.iml" />
     </modules>
   </component>

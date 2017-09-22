@@ -129,8 +129,6 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     p2 = new DatagramPacket(send.getBytes(),send.getBytes().length, InetAddress.getByName(deviceIp),Integer.parseInt(devicePort));
                     datagramSocket.send(p2);
-                    datagramSocket.send(p2);
-                    datagramSocket.send(p2);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

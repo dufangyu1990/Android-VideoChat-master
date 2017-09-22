@@ -7,26 +7,33 @@
 
     <com.nercms.receive.VideoPlayView
         android:id="@+id/video_play"
+        android:visibility="gone"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"></com.nercms.receive.VideoPlayView>
+        android:layout_height="match_parent">
+
+    </com.nercms.receive.VideoPlayView>
 
 
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/sendData"
-        android:text="发送数据"
-
-        />
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/transip"
-        android:layout_below="@id/sendData"
         android:layout_marginTop="10dp"
         android:text="穿透"
 
+        />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/showdata"
+        android:layout_below="@id/transip"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:text="sdasdasdasdas"
+        android:textSize="16sp"
+        android:textColor="#ffffff"
         />
 
 </RelativeLayout>

@@ -21,12 +21,12 @@ public class MainActivity extends AppCompatActivity {
     private Button transBtn;
     private TextView textView;
     private  DatagramSocket datagramSocket;
-
+    private StringBuffer stringBuffer = new StringBuffer();
 
     private String UserIp;//设备IP
     private String UserPort;//设备端口
 
-
+    private boolean threadflag= false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,6 +38,31 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    private void initView() {
+        textView = (TextView)findViewById(R.id.showdata);
+        transBtn = (Button)findViewById(R.id.transbutton);
+        transBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String send = "[2002^0003^201^WG12345678901235^^^^^^^^^^^^^^^^]";
+                DatagramPacket p2;
+                // 发包打洞,多发几次
+                Log.d("dfy","UserIp = "+UserIp);
+                Log.d("dfy","UserPort = "+UserPort);
+                try {
+                    p2 = new DatagramPacket(send.getBytes(),send.getBytes().length, InetAddress.getByName(UserIp),Integer.parseInt(UserPort));
+                    datagramSocket.send(p2);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        });
+
+
+    }
 
 
     public void init() {
@@ -65,12 +90,40 @@ public class MainActivity extends AppCompatActivity {
     {
         Log.d("dfy","启动心跳线程");
         // 启动心跳线程
-        String heartStr = "[2001^0001^201^WG12345678901235^^^^^^^^^^^^^^^^]";
+        //[2002^0001^201^WG12345678901235^^^^^^^^^用户本地IP^用户本地端口^^^^^^]
+        stringBuffer.delete(0,stringBuffer.length());
+        stringBuffer.append("[2001^0001^201^WG12345678901235^^^^^^^^^").append(Util.getIpAddressString()).append("^").append("18228").append("^^^^^^]");
+        String heartStr = stringBuffer.toString();
         try {
             DatagramPacket hp = new DatagramPacket(heartStr.getBytes(), heartStr.length(),InetAddress.getByName(Constant.SERVER_IP), Constant.SERVER_PORT);
-            new Thread(new HeartThread(datagramSocket,hp)).start();
+            HeartThread thread = new HeartThread(hp);
+            thread.start();
         } catch (UnknownHostException e) {
             e.printStackTrace();
+        }
+
+    }
+
+
+    class HeartThread extends Thread {
+        private DatagramPacket p;
+        public HeartThread(DatagramPacket p) {
+            this.p = p;
+        }
+
+        public void run() {
+            while (!threadflag) {
+                try {
+                    datagramSocket.send(p);
+                    Thread.sleep(45000);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
         }
 
     }
@@ -91,34 +144,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    private void initView() {
-        textView = (TextView)findViewById(R.id.showdata);
-        transBtn = (Button)findViewById(R.id.transbutton);
 
-
-
-
-        transBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String send = "[2002^0003^201^WG12345678901235^^^^^^^^^^^^^^^^]";
-                DatagramPacket p2;
-                // 发包打洞,多发几次
-                Log.d("dfy","UserIp = "+UserIp);
-                Log.d("dfy","UserPort = "+UserPort);
-                try {
-                    p2 = new DatagramPacket(send.getBytes(),send.getBytes().length, InetAddress.getByName(UserIp),Integer.parseInt(UserPort));
-                    datagramSocket.send(p2);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-
-            }
-        });
-
-
-    }
 
 
     /**
@@ -128,17 +154,15 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try {
                 byte[] buf = new byte[1024];
-                boolean isEnd = false;
-                while (!isEnd) {
-                    DatagramPacket rp = new DatagramPacket(buf, 1024);
+                DatagramPacket rp = new DatagramPacket(buf, 1024);
+                while (!threadflag) {
                     datagramSocket.receive(rp);
                     // 取出信息
                     final  String content = new String(rp.getData(), 0, rp.getLength());
-                    String rip = rp.getAddress().getHostAddress();
-                    int rport = rp.getPort();
+//                    String rip = rp.getAddress().getHostAddress();
+//                    int rport = rp.getPort();
                     // 输出接收到的数据
 //                    Log.d("dfy", "接收数据=" + rip + ":" + rport + " >>>> " + content);
-
 
                     runOnUiThread(new Runnable() {
                         @Override
@@ -146,9 +170,6 @@ public class MainActivity extends AppCompatActivity {
                             textView.setText(content);
                         }
                     });
-
-
-
                     String[] strArr = content.split("\\^");
                     if(strArr[1].equals(Constant.HEART_JUMP))
                     {
@@ -183,15 +204,19 @@ public class MainActivity extends AppCompatActivity {
 
         if(datagramSocket!=null)
         {
-            datagramSocket.close();
+            if (!datagramSocket.isClosed())
+                datagramSocket.close();
+            datagramSocket.disconnect();
             datagramSocket = null;
         }
+
 
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        threadflag = true;
         close();
     }
 

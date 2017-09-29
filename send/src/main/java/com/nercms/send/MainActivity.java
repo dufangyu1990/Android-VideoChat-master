@@ -23,10 +23,11 @@ public class MainActivity extends AppCompatActivity {
     private  DatagramSocket datagramSocket;
     private static final int TIMEOUT = 3000;   // 设置超时为3秒
     private static final int MAXTRIES = 5;     // 最大重发次数5次
-
+    private StringBuffer stringBuffer = new StringBuffer();
 
     private String deviceIp;//设备IP
     private String devicePort;//设备端口
+    private boolean threadflag= false;
 
 
     @Override
@@ -67,10 +68,14 @@ public class MainActivity extends AppCompatActivity {
     {
         Log.d("dfy","启动心跳线程");
         // 启动心跳线程
-        String heartStr = "[2002^0001^201^WG12345678901235^^^^^^^^^^^^^^^^]";
+        //[2002^0001^201^WG12345678901235^^^^^^^^^用户本地IP^用户本地端口^^^^^^]
+        stringBuffer.delete(0,stringBuffer.length());
+        stringBuffer.append("[2002^0001^201^WG12345678901235^^^^^^^^^").append(Util.getIpAddressString()).append("^").append("18228").append("^^^^^^]");
+        String heartStr = stringBuffer.toString();
         try {
             DatagramPacket hp = new DatagramPacket(heartStr.getBytes(), heartStr.length(),InetAddress.getByName(Constant.SERVER_IP), Constant.SERVER_PORT);
-            new Thread(new HeartThread(datagramSocket,hp)).start();
+            HeartThread thread = new HeartThread(hp);
+            thread.start();
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -98,9 +103,6 @@ public class MainActivity extends AppCompatActivity {
         transBtn = (Button)findViewById(R.id.transbutton);
         queryBtn = (Button)findViewById(R.id.querybutton);
 
-
-
-
         queryBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -127,16 +129,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("dfy","deviceIp = "+deviceIp);
                 Log.d("dfy","devicePort = "+devicePort);
                 try {
-                    p2 = new DatagramPacket(send.getBytes(),send.getBytes().length, InetAddress.getByName(deviceIp),Integer.parseInt(devicePort));
+                    p2 = new DatagramPacket(send.getBytes(),send.getBytes().length, InetAddress.getByName(deviceIp),Integer.parseInt(devicePort.trim()));
                     datagramSocket.send(p2);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
-
             }
         });
-
 
     }
 
@@ -148,16 +147,15 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try {
                 byte[] buf = new byte[1024];
-                boolean isEnd = false;
-                while (!isEnd) {
-                    DatagramPacket rp = new DatagramPacket(buf, 1024);
+                DatagramPacket rp = new DatagramPacket(buf, 1024);
+                while (!threadflag) {
                     datagramSocket.receive(rp);
                     // 取出信息
                     final  String content = new String(rp.getData(), 0, rp.getLength());
-                    String rip = rp.getAddress().getHostAddress();
-                    int rport = rp.getPort();
+//                    String rip = rp.getAddress().getHostAddress();
+//                    int rport = rp.getPort();
                     // 输出接收到的数据
-                    Log.d("dfy", "接收数据=" + rip + ":" + rport + " >>>> " + content);
+//                    Log.d("dfy", "接收数据=" + rip + ":" + rport + " >>>> " + content);
                     Log.d("dfy", "接收数据=" + content);
 
                     runOnUiThread(new Runnable() {
@@ -183,7 +181,9 @@ public class MainActivity extends AppCompatActivity {
 
                     }else if(strArr[1].equals(Constant.QUERY_ORDER))
                     {
-                        if(strArr[11].equals("1"))//在线
+                        //1代表不在同一局域网
+                        //2 代表在同一局域网
+                        if(strArr[11].equals("1")||strArr[11].equals("2"))
                         {
                             deviceIp = strArr[12];
                             devicePort = strArr[13];
@@ -208,6 +208,29 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    class HeartThread extends Thread {
+        private DatagramPacket p;
+        public HeartThread(DatagramPacket p) {
+            this.p = p;
+        }
+
+        public void run() {
+                while (!threadflag) {
+                    try {
+                        datagramSocket.send(p);
+                        Thread.sleep(45000);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+
+        }
+
+    }
+
 
 
 
@@ -215,7 +238,9 @@ public class MainActivity extends AppCompatActivity {
 
         if(datagramSocket!=null)
         {
-            datagramSocket.close();
+            if (!datagramSocket.isClosed())
+                datagramSocket.close();
+            datagramSocket.disconnect();
             datagramSocket = null;
         }
 
@@ -224,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        threadflag  = true;
         close();
     }
 

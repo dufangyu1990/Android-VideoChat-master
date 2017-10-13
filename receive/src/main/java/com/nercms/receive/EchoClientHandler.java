@@ -65,7 +65,7 @@ public class EchoClientHandler extends SimpleChannelInboundHandler<DatagramPacke
 
     public void sendData()
     {
-        ctx.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer("2222".getBytes()), new InetSocketAddress(Util.SERVER_IP, Util.SERVER_PORT)));
+        ctx.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer("2222".getBytes()), new InetSocketAddress(Constant.SERVER_IP, Constant.SERVER_PORT)));
     }
 
 

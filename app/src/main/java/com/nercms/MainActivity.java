@@ -17,9 +17,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void doStart(View v) {
         String ip = editText.getText().toString();
-        Intent intent = new Intent(this, VideoChatActivity.class);
+        Intent intent = new Intent(this, VideoChatActivity2.class);
         intent.putExtra("remote_ip", ip);
-        intent.putExtra("remote_port", 19888);
+        intent.putExtra("remote_video_port", 19888);
         startActivity(intent);
 
     }

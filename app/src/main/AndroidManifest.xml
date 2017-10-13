@@ -19,9 +19,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".VideoChatActivity"/>
+        <activity android:name=".VideoChatActivity2"/>
 
-        <activity android:name=".VideoChatActivity">
-        </activity>
     </application>
 
 </manifest>

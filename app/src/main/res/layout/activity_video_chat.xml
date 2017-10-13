@@ -8,7 +8,9 @@
     <com.nercms.receive.VideoPlayView
         android:id="@+id/video_play"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"></com.nercms.receive.VideoPlayView>
+        android:layout_height="match_parent">
+
+    </com.nercms.receive.VideoPlayView>
 
     <SurfaceView
         android:layout_width="100dp"

@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Android-VideoChat-master.iml" filepath="$PROJECT_DIR$/Android-VideoChat-master.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ffmpeg/ffmpeg.iml" filepath="$PROJECT_DIR$/ffmpeg/ffmpeg.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ilbclibrary/ilbclibrary.iml" filepath="$PROJECT_DIR$/ilbclibrary/ilbclibrary.iml" />
       <module fileurl="file://$PROJECT_DIR$/receive/receive.iml" filepath="$PROJECT_DIR$/receive/receive.iml" />
       <module fileurl="file://$PROJECT_DIR$/send/send.iml" filepath="$PROJECT_DIR$/send/send.iml" />
     </modules>

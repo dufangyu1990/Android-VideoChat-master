@@ -69,7 +69,7 @@ public class VideoChatActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_chat);
         remote_ip = getIntent().getStringExtra("remote_ip");
-        remote_port=getIntent().getIntExtra("remote_port",8080);
+        remote_port=getIntent().getIntExtra("remote_video_port",8080);
         initView();
 
     }
@@ -134,6 +134,7 @@ public class VideoChatActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             //初始化接受包
+
             rtp_receive_packet = new RtpPacket(socket_receive_Buffer, 0); //初始化 ,socketBuffer改变时rtp_Packet也跟着改变
             /**
              * 因为可能传输数据过大 会将一次数据分割成好几段来传输
@@ -158,7 +159,7 @@ public class VideoChatActivity extends AppCompatActivity {
 
             //摄像头设置，预览视频
             mCamera = Camera.open(cameraId); //实例化摄像头类对象  0为后置 1为前置
-            Camera.Parameters parameters = mCamera.getParameters(); //将摄像头参数传入p中
+            Camera.Parameters parameters = mCamera.getParameters(); //将摄像头参数传入parameters中
             parameters.setFlashMode("off");
             parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
             parameters.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);

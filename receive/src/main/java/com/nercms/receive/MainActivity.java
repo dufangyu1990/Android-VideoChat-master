@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private String UserIp;//设备IP
     private String UserPort;//设备端口
 
+    private int localPort = 16228;
     private boolean threadflag= false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initView() {
         textView = (TextView)findViewById(R.id.showdata);
-        transBtn = (Button)findViewById(R.id.transbutton);
+        transBtn = (Button)findViewById(R.id.mybtn);
         transBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -67,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void init() {
         try {
-            datagramSocket = new DatagramSocket(16228,InetAddress.getByName(Util.getIpAddressString()));
+            datagramSocket = new DatagramSocket(localPort,InetAddress.getByName(Util.getIpAddressString()));
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (UnknownHostException e) {
@@ -92,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
         // 启动心跳线程
         //[2002^0001^201^WG12345678901235^^^^^^^^^用户本地IP^用户本地端口^^^^^^]
         stringBuffer.delete(0,stringBuffer.length());
-        stringBuffer.append("[2001^0001^201^WG12345678901235^^^^^^^^^").append(Util.getIpAddressString()).append("^").append("18228").append("^^^^^^]");
+        stringBuffer.append("[2001^0001^201^WG12345678901235^^^^^^^^^").append(Util.getIpAddressString()).append("^").append(String.valueOf(localPort)).append("^^^^^^]");
         String heartStr = stringBuffer.toString();
         try {
             DatagramPacket hp = new DatagramPacket(heartStr.getBytes(), heartStr.length(),InetAddress.getByName(Constant.SERVER_IP), Constant.SERVER_PORT);
@@ -163,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
 //                    int rport = rp.getPort();
                     // 输出接收到的数据
 //                    Log.d("dfy", "接收数据=" + rip + ":" + rport + " >>>> " + content);
+//                    Log.d("dfy", "接收数据=" +  content);
 
                     runOnUiThread(new Runnable() {
                         @Override

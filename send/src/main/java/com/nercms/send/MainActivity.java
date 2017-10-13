@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private String devicePort;//设备端口
     private boolean threadflag= false;
 
+    private int loaclPort = 18228;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void init() {
         try {
-            datagramSocket = new DatagramSocket(18228,InetAddress.getByName(Util.getIpAddressString()));
+            datagramSocket = new DatagramSocket(loaclPort,InetAddress.getByName(Util.getIpAddressString()));
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (UnknownHostException e) {
@@ -70,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         // 启动心跳线程
         //[2002^0001^201^WG12345678901235^^^^^^^^^用户本地IP^用户本地端口^^^^^^]
         stringBuffer.delete(0,stringBuffer.length());
-        stringBuffer.append("[2002^0001^201^WG12345678901235^^^^^^^^^").append(Util.getIpAddressString()).append("^").append("18228").append("^^^^^^]");
+        stringBuffer.append("[2002^0001^201^WG12345678901235^^^^^^^^^").append(Util.getIpAddressString()).append("^").append(String.valueOf(loaclPort)).append("^^^^^^]");
         String heartStr = stringBuffer.toString();
         try {
             DatagramPacket hp = new DatagramPacket(heartStr.getBytes(), heartStr.length(),InetAddress.getByName(Constant.SERVER_IP), Constant.SERVER_PORT);

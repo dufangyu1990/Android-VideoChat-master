@@ -1,1 +1,1 @@
-include ':app', ':send', ':receive'
+include ':app', ':send', ':receive', ':ffmpeg', ':ilbclibrary'

@@ -1,19 +1,19 @@
 /*
  * Copyright (C) 2009 The Sipdroid Open Source Project
  * Copyright (C) 2005 Luca Veltri - University of Parma - Italy
- * 
+ *
  * This file is part of Sipdroid (http://www.sipdroid.org)
- * 
+ *
  * Sipdroid is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This source code is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this source code; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -24,6 +24,7 @@ package org.sipdroid.net;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 
 
 /**
@@ -34,9 +35,9 @@ import java.net.InetAddress;
  */
 public class RtpSocket {
 	/** UDP socket */
-	SipdroidSocket socket;
+	public SipdroidSocket socket;
 	DatagramPacket datagram;
-	
+
 	/** Remote address */
 	InetAddress r_addr;
 
@@ -75,6 +76,8 @@ public class RtpSocket {
 		rtpp.packet_len = datagram.getLength();
 	}
 
+
+
 	/** Sends a RTP packet from this socket */
 	public void send(RtpPacket rtpp) throws IOException {
 		datagram.setData(rtpp.packet);
@@ -84,9 +87,28 @@ public class RtpSocket {
 		socket.send(datagram);
 	}
 
+	/** Sends a RTP packet from this socket */
+	public void send(RtpPacket rtpp, InetSocketAddress r_addr) throws IOException {
+		datagram.setData(rtpp.packet);
+		datagram.setLength(rtpp.packet_len);
+		//datagram.setAddress(r_addr);
+		datagram.setSocketAddress(r_addr);
+		socket.send(datagram);
+	}
+
+
+
+
 	/** Closes this socket */
 	public void close() { // socket.close();
 		socket.close();
 	}
 
+	public void send(String msg,InetSocketAddress r_addr) throws IOException {
+		datagram.setData(msg.getBytes());
+		datagram.setLength(msg.getBytes().length);
+		//datagram.setAddress(r_addr);
+		datagram.setSocketAddress(r_addr);
+		socket.send(datagram);
+	}
 }

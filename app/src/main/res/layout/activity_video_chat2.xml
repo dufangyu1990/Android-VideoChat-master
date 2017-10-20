@@ -8,11 +8,7 @@
     android:fitsSystemWindows="true"
    >
 
-    <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@mipmap/ic_launcher"
-        />
+
 
     <com.nercms.receive.Videoplay
         android:id="@+id/video_play"
@@ -43,6 +39,27 @@
         android:visibility="invisible">
 
     </com.nercms.receive.Videoplay>
+
+
+    <SurfaceView
+        android:id="@+id/camera_preview"
+        android:layout_width="100dp"
+        android:layout_height="130dp"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginRight="30dp"
+        android:layout_marginTop="30dp"
+        >
+    </SurfaceView>
+
+
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/testBtn"
+        android:text="点击"
+        />
 
     <View
         android:id="@+id/click_view"

@@ -13,6 +13,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editText = (EditText) findViewById(R.id.editText);
+
+
+        editText.setText(Util.getIpAddressString());
     }
 
     public void doStart(View v) {
@@ -20,9 +23,12 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, VideoChatActivity2.class);
         intent.putExtra("remote_ip", ip);
         intent.putExtra("remote_video_port", 19888);
+        intent.putExtra("remote_audio_port", 19887);
         startActivity(intent);
 
     }
+
+
 
 
 }

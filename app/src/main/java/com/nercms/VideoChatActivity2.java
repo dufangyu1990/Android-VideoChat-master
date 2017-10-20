@@ -11,8 +11,11 @@ import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +28,7 @@ import com.nercms.send.FfmpegServer;
 import com.nercms.video.VideoServer;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.LinkedList;
 
 /**
@@ -43,8 +47,9 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
     private int cameraPosition = 1;//1代表前置摄像头，0代表后置摄像头
 
 
-
-
+    private SurfaceHolder holder = null; //创建界面句柄，显示视频的窗口句柄
+    private SurfaceView mSurfaceView;
+    private Button button;
 
     private long chat_start_time;
 
@@ -65,6 +70,9 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
     private Videoplay wrapper_view;
     private String clientip;
 
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,12 +84,15 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
 
 
         clientip = getIntent().getStringExtra("remote_ip");
+//        audioServer = new AudioServer(clientip,getIntent().getIntExtra("remote_audio_port", 0));
         ffmpegServer=new FfmpegServer(this, clientip,getIntent().getIntExtra("remote_video_port", 0));
         dataLinkedList = new LinkedList<>();
-
         initView();
         //获取的是LocalWindowManager对象
         mWindowManager = this.getWindowManager();
+
+
+
     }
 
     private void initView() {
@@ -92,14 +103,17 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
         (findViewById(R.id.click_view)).setOnClickListener(this);
 
 
+        button = (Button)findViewById(R.id.testBtn);
+        button.setOnClickListener(this);
 
-
-
+        mSurfaceView = (SurfaceView) findViewById(R.id.camera_preview);
+        holder = mSurfaceView.getHolder();
+        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
 
 //        audioServer.startRecording();
 
-        ffmpegServer.doStart();
+//        ffmpegServer.doStart();
     }
 
     @Override
@@ -148,25 +162,37 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
     public void openCamera() {
         if (mCamera == null) {
 
+//            //摄像头设置，预览视频
+//            mCamera = Camera.open(cameraPosition); //实例化摄像头类对象
+//            Camera.Parameters p = mCamera.getParameters(); //将摄像头参数传入p中
+//            p.setFlashMode("off");
+//            p.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
+//            p.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
+//            p.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+//
+//            p.setPictureFormat(PixelFormat.JPEG); // Sets the image format for
+//            // picture 设定相片格式为JPEG，默认为NV21
+//            p.setPreviewFormat(PixelFormat.YCbCr_420_SP); // Sets the image format
+//            //p.setPreviewFormat(ImageFormat.NV21);
+//            //p.setPreviewFormat(PixelFormat.YCbCr_420_SP); //设置预览视频的格式
+//
+//
+//            p.setPreviewSize(352, 288); //设置预览视频的尺寸，CIF格式352×288
+//            //p.setPreviewSize(800, 600);
+//            p.setPreviewFrameRate(15); //设置预览的帧率，15帧/秒
+//            mCamera.setParameters(p); //设置参数
+
+
+
             //摄像头设置，预览视频
             mCamera = Camera.open(cameraPosition); //实例化摄像头类对象
             Camera.Parameters p = mCamera.getParameters(); //将摄像头参数传入p中
-            p.setFlashMode("off");
-            p.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
-            p.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
-            p.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-
-            p.setPictureFormat(PixelFormat.JPEG); // Sets the image format for
-            // picture 设定相片格式为JPEG，默认为NV21
-            p.setPreviewFormat(PixelFormat.YCbCr_420_SP); // Sets the image format
-            //p.setPreviewFormat(ImageFormat.NV21);
-            //p.setPreviewFormat(PixelFormat.YCbCr_420_SP); //设置预览视频的格式
-
-
-            p.setPreviewSize(352, 288); //设置预览视频的尺寸，CIF格式352×288
-            //p.setPreviewSize(800, 600);
+            p.setPreviewFormat(PixelFormat.YCbCr_420_SP); //设置预览视频的格式
+            p.setPreviewSize(352,288); //设置预览视频的尺寸，CIF格式352×288
             p.setPreviewFrameRate(15); //设置预览的帧率，15帧/秒
             mCamera.setParameters(p); //设置参数
+            mCamera.setDisplayOrientation(90); //视频旋转90度
+
 
 
 
@@ -204,12 +230,12 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
 //            byte[] rawBuf = new byte[1400];
 //            mCamera.addCallbackBuffer(rawBuf);
             mCamera.setDisplayOrientation(90); //视频旋转90度
-         /*   try {
+            try {
                 mCamera.setPreviewDisplay(holder); //预览的视频显示到指定窗口
             } catch (IOException e) {
                 e.printStackTrace();
-            }*/
-
+            }
+            mCamera.startPreview(); //开始预览
 
 
             Log.d("dfy","openCamera");
@@ -217,8 +243,7 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
             //预览的回调函数在开始预览的时候以中断方式被调用，每秒调用15次，回调函数在预览的同时调出正在播放的帧
             Callback a = new Callback();
             mCamera.setPreviewCallback(a);
-//            mCamera.setPreviewCallbackWithBuffer(a);
-            mCamera.startPreview(); //开始预览
+
 
         }
     }
@@ -264,12 +289,26 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
             // Log.d("xxxxx","size1:"+Arrays.toString(frame));
             //YUVtoRGBUtil.decodeYUV420SP(selfVideo.mPixel,frame,352,288);
 
-            Log.d("dfy","enter onPreviewFrame");
-            YuvImage image = new YuvImage(ffmpegServer.sendData(frame), ImageFormat.NV21, 352, 288, null);            //ImageFormat.NV21  640 480
+//            Log.d("dfy","enter onPreviewFrame");
+//            YuvImage image = new YuvImage(ffmpegServer.sendTestData(frame), ImageFormat.NV21, 352, 288, null);            //ImageFormat.NV21  640 480
+//            ByteArrayOutputStream outputSteam = new ByteArrayOutputStream();
+//            image.compressToJpeg(new Rect(0, 0, image.getWidth(), image.getHeight()), 70, outputSteam); // 将NV21格式图片，以质量70压缩成Jpeg，并得到JPEG数据流
+//            selfVideo.jpegData = outputSteam.toByteArray();
+//            selfVideo.postInvalidate();
+
+
+
+
+
+
+
+            final byte[] send_stream = ffmpegServer.ffmpeg.videoencode(frame);
+            byte decode[]=ffmpegServer.ffmpeg.videodecode(send_stream);
+            YuvImage image = new YuvImage(decode, ImageFormat.NV21, 352, 288, null);            //ImageFormat.NV21  640 480
             ByteArrayOutputStream outputSteam = new ByteArrayOutputStream();
-            image.compressToJpeg(new Rect(0, 0, image.getWidth(), image.getHeight()), 70, outputSteam); // 将NV21格式图片，以质量70压缩成Jpeg，并得到JPEG数据流
-            selfVideo.jpegData = outputSteam.toByteArray();
-            selfVideo.postInvalidate();
+            image.compressToJpeg(new Rect(0, 0, image.getWidth(), image.getHeight()), 70, outputSteam); //
+            view.jpegData = outputSteam.toByteArray();
+            view.postInvalidate();
 
         }
     }
@@ -282,6 +321,7 @@ public class VideoChatActivity2 extends AppCompatActivity implements VideoServer
     //    wrapper_view.postInvalidate();
         //Log.e(Config.TAG, "接受视频数据间隔x：" + (audioServer.lastTime - timestamp));
 
+        LogUtil.d("dfy","enter receiveVideoStream");
         byte decode[]=ffmpegServer.ffmpeg.videodecode(frmbuf);
         YuvImage image = new YuvImage(decode, ImageFormat.NV21, 352, 288, null);            //ImageFormat.NV21  640 480
         ByteArrayOutputStream outputSteam = new ByteArrayOutputStream();

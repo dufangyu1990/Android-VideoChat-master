@@ -4,10 +4,10 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
-import android.util.Log;
 
 import com.googlecode.androidilbc.Codec;
 import com.nercms.Config;
+import com.nercms.LogUtil;
 import com.nercms.model.AudioData;
 
 import org.sipdroid.net.RtpPacket;
@@ -45,6 +45,7 @@ public class AudioServer {
     private RtpPacket rtp_send_packet = null; //创建RTP发送包
     private RtpPacket rtp_receive_packet = null; //创建RTP接受包
     private int remote_port;
+    private String clientIp;
 
     //接受 处理
     private byte[] socket_receive_Buffer = new byte[2048]; //包缓存
@@ -70,6 +71,13 @@ public class AudioServer {
         initSocket();
     }
 
+    public AudioServer(String clientIp,int server_port) {
+        this.clientIp = clientIp;
+        this.remote_port = server_port;
+        dataLinkedList=new LinkedList<>();
+        initSocket();
+    }
+
     /**
      * 初始化rtp通道
      */
@@ -78,7 +86,8 @@ public class AudioServer {
         if (rtp_socket == null) {
             try {
                 //rtp_socket = new RtpSocket(new SipdroidSocket(20000)); //初始化套接字，20000为接收端口号
-                rtp_socket = new RtpSocket(new SipdroidSocket(13243), InetAddress.getByName(Config.serverIP), remote_port);
+//                rtp_socket = new RtpSocket(new SipdroidSocket(13243), InetAddress.getByName(Config.serverIP), remote_port);
+                rtp_socket = new RtpSocket(new SipdroidSocket(13243), InetAddress.getByName(clientIp), remote_port);
             } catch (SocketException e) {
                 e.printStackTrace();
             } catch (UnknownHostException e) {
@@ -107,7 +116,7 @@ public class AudioServer {
         audioBufSize = AudioRecord.getMinBufferSize(AudioConfig.SAMPLERATE,
                 AudioConfig.RECORDER_CHANNEL_CONFIG, AudioConfig.AUDIO_FORMAT);
         if (audioBufSize == AudioRecord.ERROR_BAD_VALUE) {
-            Log.e(LOG, "audioBufSize error");
+            LogUtil.d(Config.TAG, "audioBufSize error");
             return;
         }
 
@@ -159,7 +168,7 @@ public class AudioServer {
             public void run() {
                 samples = new byte[audioBufSize];
                 bufferRead = audioRecord.read(samples, 0, bufferSize);
-                //Log.e(Config.TAG, "bufferRead：" + bufferRead + " " + audioBufSize + " " + bufferSize);
+                //LogUtil.e(Config.TAG, "bufferRead：" + bufferRead + " " + audioBufSize + " " + bufferSize);
                 if (bufferRead > 0) {
                     //编码
 
@@ -180,11 +189,11 @@ public class AudioServer {
 
                         try {
                             if (rtp_socket != null) {
-                               // Log.d(Config.TAG, "发送音频数据 :" + (count++) + " 间隔：" + (System.currentTimeMillis() - time1));
+                               // LogUtil.d(Config.TAG, "发送音频数据 :" + (count++) + " 间隔：" + (System.currentTimeMillis() - time1));
                                 time1 = System.currentTimeMillis();
                                 rtp_socket.send(rtp_send_packet);
                             } else {
-                                Log.d(Config.TAG, "rtp_socket=null");
+                                LogUtil.d(Config.TAG, "rtp_socket=null");
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -206,7 +215,7 @@ public class AudioServer {
             while (isRecording) {
                 samples = new byte[audioBufSize];
                 bufferRead = audioRecord.read(samples, 0, bufferSize);
-                //Log.e(Config.TAG, "bufferRead：" + bufferRead + " " + audioBufSize + " " + bufferSize);
+                LogUtil.e(Config.TAG, "bufferRead：" + bufferRead + " " + audioBufSize + " " + bufferSize);
                 if (bufferRead > 0) {
                     //编码
 
@@ -228,11 +237,11 @@ public class AudioServer {
 
                         try {
                             if (rtp_socket != null) {
-                                 Log.e(Config.TAG, "发送音频数据 :"+timestamp);
+                                 LogUtil.e(Config.TAG, "发送音频数据 :"+timestamp);
                                 // time1 = System.currentTimeMillis();
                                 rtp_socket.send(rtp_send_packet);
                             } else {
-                                Log.d(Config.TAG, "rtp_socket=null");
+                                LogUtil.d(Config.TAG, "rtp_socket=null");
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -250,7 +259,8 @@ public class AudioServer {
                     e.printStackTrace();
                 }
             }
-            System.out.println(LOG + "end recording");
+//            System.out.println(Log + "end recording");
+            LogUtil.e(Config.TAG, LOG + "end recording");
 
         }
 
@@ -262,6 +272,7 @@ public class AudioServer {
     class DecoderThread extends Thread {
         public void run() {
             while (isRecording) {
+                LogUtil.d("dfy","DecoderThread");
                 try {
                     if (rtp_socket != null)
                         rtp_socket.receive(rtp_receive_packet); //接收一个包
@@ -271,7 +282,7 @@ public class AudioServer {
                     e.printStackTrace();
                 }
                 int packetSize = rtp_receive_packet.getPayloadLength(); //获取包的大小
-                //Log.e(Config.TAG, "接受音频数据:"+packetSize);
+                LogUtil.e(Config.TAG, "接受音频数据:"+packetSize);
                 if (packetSize <= 0||packetSize>2048)
                     continue;
                 if (rtp_receive_packet.getPayloadType() != 1) //确认负载类型为1
@@ -282,8 +293,8 @@ public class AudioServer {
                 int bMark = rtp_receive_packet.hasMarker() == true ? 1 : 0; //是否是最后一个包
                 byte[] encoded = rtp_receive_packet.getPayload();
 
-                Log.e(Config.TAG, "接受音频数据:"+timestamp);
-               // Log.d("log", "Type:" + rtp_receive_packet.getPayloadType() + " bMark:" + bMark + " packetSize:" + packetSize + " PayloadType:" + rtp_receive_packet.getPayloadType() + " timestamp:" + timestamp);
+                LogUtil.d(Config.TAG, "接受音频数据:"+timestamp);
+               // LogUtil.d("log", "Type:" + rtp_receive_packet.getPayloadType() + " bMark:" + bMark + " packetSize:" + packetSize + " PayloadType:" + rtp_receive_packet.getPayloadType() + " timestamp:" + timestamp);
                 if (encoded.length >= 0) {
                     //解码
                     int decodeSize = Codec.instance().decode(encoded, 0,
@@ -314,13 +325,13 @@ public class AudioServer {
             while (isRecording){
                 if(dataLinkedList.size()>0){
                     AudioData audioData=null;
-                    //Log.d(Config.TAG, "播放音频数据1");
+                    //LogUtil.d(Config.TAG, "播放音频数据1");
                     synchronized (dataLinkedList) {
                          audioData = dataLinkedList.removeFirst();
                     }
                     if(audioData!=null) {
                         lastTime = audioData.time;
-                       // Log.d(Config.TAG, "播放音频数据2");
+                       // LogUtil.d(Config.TAG, "播放音频数据2");
                         int audiosize = audioTrack.write(audioData.data, 0, audioData.size);
                     }
                 }
@@ -339,10 +350,10 @@ public class AudioServer {
                 AudioFormat.CHANNEL_CONFIGURATION_MONO,
                 AudioConfig.AUDIO_FORMAT);
         if (bufferSize < 0) {
-            Log.d(Config.TAG, LOG + "initialize error!");
+            LogUtil.d(Config.TAG, LOG + "initialize error!");
             return false;
         }
-        Log.d(LOG, "Player初始化的 buffersize是 " + bufferSize);
+        LogUtil.d(Config.TAG, "Player初始化的 buffersize是 " + bufferSize);
         audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
                 AudioConfig.SAMPLERATE, AudioFormat.CHANNEL_CONFIGURATION_MONO,
                 AudioConfig.AUDIO_FORMAT, bufferSize, AudioTrack.MODE_STREAM);

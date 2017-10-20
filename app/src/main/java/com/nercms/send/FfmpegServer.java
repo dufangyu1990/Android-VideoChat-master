@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import com.nercms.Config;
+import com.nercms.LogUtil;
 import com.nercms.video.VideoServer;
 import com.zsg.ffmpegvideolib.Ffmpeg;
 
@@ -13,10 +14,10 @@ import org.sipdroid.net.SipdroidSocket;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 
 /**
  * Created by zsg on 2017/3/16.
@@ -53,6 +54,8 @@ public class FfmpegServer {
 
     private VideoServer.ReceiveVideoCallback receiveVideoCallback;
 
+    private SendDataThread sendDataThread;
+    private boolean isSendThreadStart = false;
     public static long sendDatatime = 0;
 
     InetSocketAddress serverAddress;        //服务器地址
@@ -92,10 +95,10 @@ public class FfmpegServer {
 
 //        serverAddress = new InetSocketAddress(Config.serverIP, server_video_port);
         Log.d("dfy","clientIp = "+clientIp+",server_video_port = "+server_video_port);
-        serverAddress = new InetSocketAddress(clientIp, server_video_port);
+        serverAddress = new InetSocketAddress("127.0.0.1", server_video_port);
         try {
             //rtp_socket = new RtpSocket(new SipdroidSocket(20000)); //初始化套接字，20000为接收端口号
-            rtp_socket = new RtpSocket(new SipdroidSocket(20000));
+            rtp_socket = new RtpSocket(new SipdroidSocket(20000), InetAddress.getByName(clientIp), server_video_port);
             //doStart();
         } catch (SocketException e) {
             e.printStackTrace();
@@ -103,7 +106,24 @@ public class FfmpegServer {
             e.printStackTrace();
         }
 
-        //throughNet();
+        //初始化接受包
+        rtp_receive_packet = new RtpPacket(socket_receive_Buffer, 0); //初始化 ,socketBuffer改变时rtp_Packet也跟着改变
+        /**
+         * 因为可能传输数据过大 会将一次数据分割成好几段来传输
+         * 接受方 根据序列号和结束符 来将这些数据拼接成完整数据
+         */
+        //初始化解码器
+        //decoder_handle = decode.CreateH264Packer(); //创建拼帧器
+        //decode.CreateDecoder(352, 288); //创建解码器
+//        isRunning = true;
+//        DecoderThread decoder = new DecoderThread();
+//        decoder.start(); //启动一个线程
+
+        //初始化发送包
+        rtp_send_packet = new RtpPacket(socket_send_Buffer, 0);
+
+
+        throughNet();
 
     }
 
@@ -122,6 +142,7 @@ public class FfmpegServer {
             public void run() {
                 String msg = "QC@001@00";
                 try {
+
                     rtp_socket.send(msg, serverAddress);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -130,18 +151,18 @@ public class FfmpegServer {
                     try {
                         rtp_socket.socket.receive(packet);
                         String receivemsg = new String(data).trim();
-                        Log.d(Config.TAG, "收到消息：" + receivemsg);
-                        String m[] = receivemsg.split("[@]");
-                        if (m.length > 0 && m[1].equals(GET_CLIENT_IP_RSP)) {
-                            Log.d("InetSocketAddress", m[2] + " " + m[3]);
-                            clientAddress = new InetSocketAddress(m[2], Integer.parseInt(m[3]) + 1);
-                            rtp_socket.send("QC@003@00", clientAddress);
-                            rtp_socket.send("QC@003@00", serverAddress);
-                            b = false;
-                            doStart();
-                        } else if (m.length > 0 && m[1].equals(REPLAY_RSP)) {
-
-                        }
+                        LogUtil.d(Config.TAG, "收到消息：" + receivemsg);
+//                        String m[] = receivemsg.split("[@]");
+//                        if (m.length > 0 && m[1].equals(GET_CLIENT_IP_RSP)) {
+//                            Log.d("InetSocketAddress", m[2] + " " + m[3]);
+//                            clientAddress = new InetSocketAddress(m[2], Integer.parseInt(m[3]) + 1);
+//                            rtp_socket.send("QC@003@00", clientAddress);
+//                            rtp_socket.send("QC@003@00", serverAddress);
+//                            b = false;
+//                            doStart();
+//                        } else if (m.length > 0 && m[1].equals(REPLAY_RSP)) {
+//
+//                        }
 
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -167,9 +188,9 @@ public class FfmpegServer {
         //初始化解码器
         //decoder_handle = decode.CreateH264Packer(); //创建拼帧器
         //decode.CreateDecoder(352, 288); //创建解码器
-        isRunning = true;
-        DecoderThread decoder = new DecoderThread();
-        decoder.start(); //启动一个线程
+//        isRunning = true;
+//        DecoderThread decoder = new DecoderThread();
+//        decoder.start(); //启动一个线程
 
         //初始化发送包
         rtp_send_packet = new RtpPacket(socket_send_Buffer, 0);
@@ -182,18 +203,47 @@ public class FfmpegServer {
 
     int count = 0;
     int sequence=0;
+
+
+
+
+    public byte[] sendTestData(byte[] frame)
+    {
+        final byte[] send_stream = ffmpeg.videoencode(frame);
+        final long timestamp = System.currentTimeMillis(); //设定时间戳
+        receiveVideoCallback.receiveVideoStream(send_stream, send_stream.length, timestamp);
+        return ffmpeg.videodecode(send_stream);
+    }
+
+
     public byte[] sendData(byte[] frame) {
 
-        Log.d("dfy","数据："+ Arrays.toString(frame));
-
+//        LogUtil.d("dfy","数据："+ Arrays.toString(frame));
 
         final byte[] send_stream = ffmpeg.videoencode(frame);
-
-
         //通过RTP协议发送帧
-
         final long timestamp = System.currentTimeMillis(); //设定时间戳
         sendDatatime = timestamp;
+        /**
+         * 因为可能传输数据过大 会将一次数据分割成好几段来传输
+         * 接受方 根据序列号和结束符 来将这些数据拼接成完整数据
+         * sendDataThread 发送数据线程
+         */
+//        if(!isSendThreadStart)
+//        {
+//            isSendThreadStart = true;
+//            sendDataThread = new SendDataThread();
+//            sendDataThread.setSendStream(send_stream);
+//            sendDataThread.setSendTime(timestamp);
+//            sendDataThread.start();
+//        }else{
+//            sendDataThread.setSendStream(send_stream);
+//            sendDataThread.setSendTime(timestamp);
+//        }
+
+
+
+
 
 
         /**
@@ -215,11 +265,11 @@ public class FfmpegServer {
                 System.arraycopy(send_stream, 0, socket_send_Buffer, 12, send_stream.length); //把一个包存在socketBuffer中
                 //rtp_packet.setPayload(socketBuffer, rtp_packet.getLength());
                 //Log.e(Config.TAG, "发送 timestamp:" + timestamp+"  发送大小："+rtp_send_packet.getLength());
-                Log.e(Config.TAG, "发送 sequence:" + sequence+" 总长度："+rtp_send_packet.getLength()+"  包长度"+send_stream.length+"  "+Arrays.toString(send_stream));
+//                Log.e(Config.TAG, "发送 sequence:" + sequence+" 总长度："+rtp_send_packet.getLength()+"  包长度"+send_stream.length+"  "+ Arrays.toString(send_stream));
                 sequence++;
                 try {
-                    //Log.e(Config.TAG, "发送视频数据："+send_stream.length);
-                    rtp_socket.send(rtp_send_packet, serverAddress);
+                    LogUtil.d(Config.TAG, "发送视频数据："+send_stream.length);
+                    rtp_socket.send(rtp_send_packet);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -229,8 +279,59 @@ public class FfmpegServer {
         }).start();
 
         return ffmpeg.videodecode(send_stream);
+    }
+
+
+
+    class SendDataThread extends Thread {
+
+        private  byte[] send_stream = null;
+        private  long timestamp =0;
+        public void setSendStream(byte[] send_stream)
+        {
+            this.send_stream = send_stream;
+        }
+
+        public void setSendTime(long timestamp)
+        {
+            this.timestamp = timestamp;
+        }
+
+        public void run() {
+            while(isRunning)
+            {
+
+
+                rtp_send_packet.setPayloadType(2);//定义负载类型，视频为2
+                rtp_send_packet.setMarker(true); //是否是最后一个RTP包
+                rtp_send_packet.setSequenceNumber(sequence); //序列号依次加1
+                rtp_send_packet.setTimestamp(timestamp); //时间戳
+
+                //Log.d("log", "序列号:" + sequence + " 时间：" + timestamp);
+                rtp_send_packet.setPayloadLength(send_stream.length); //包的长度，packetSize[i]+头文件
+                //从码流stream的pos处开始复制，从socketBuffer的第12个字节开始粘贴，packetSize为粘贴的长度
+                System.arraycopy(send_stream, 0, socket_send_Buffer, 12, send_stream.length); //把一个包存在socketBuffer中
+                //rtp_packet.setPayload(socketBuffer, rtp_packet.getLength());
+                //Log.e(Config.TAG, "发送 timestamp:" + timestamp+"  发送大小："+rtp_send_packet.getLength());
+//                Log.e(Config.TAG, "发送 sequence:" + sequence+" 总长度："+rtp_send_packet.getLength()+"  包长度"+send_stream.length+"  "+Arrays.toString(send_stream));
+                sequence++;
+                try {
+                    LogUtil.d(Config.TAG, "发送视频数据："+send_stream.length);
+//                    LogUtil.d("dfy","rtp_socket = "+rtp_socket);
+                    rtp_socket.send(rtp_send_packet);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
+
+        }
 
     }
+
+
+
 
 
     /**
@@ -241,7 +342,9 @@ public class FfmpegServer {
 
             while (isRunning) {
                 try {
-                    Log.d("dfy","rtp_socket = "+rtp_socket);
+
+                    LogUtil.d("dfy","rtp_socket = "+rtp_socket);
+                    LogUtil.d("dfy","enter DecoderThread ");
                     if (rtp_socket != null)
                         rtp_socket.receive(rtp_receive_packet); //接收一个包
                     else
@@ -252,7 +355,7 @@ public class FfmpegServer {
 
 
                 int packetSize = rtp_receive_packet.getPayloadLength(); //获取包的大小
-               // Log.e(Config.TAG, "接收 packetSize:"+packetSize+"  总大小："+rtp_receive_packet.getLength()+"  Type:"+rtp_receive_packet.getPayloadType()+" sequence:"+rtp_receive_packet.getSequenceNumber()+" Timestamp"+rtp_receive_packet.getTimestamp());
+                LogUtil.d(Config.TAG, "接收 packetSize:"+packetSize+"  总大小："+rtp_receive_packet.getLength()+"  Type:"+rtp_receive_packet.getPayloadType()+" sequence:"+rtp_receive_packet.getSequenceNumber()+" Timestamp"+rtp_receive_packet.getTimestamp());
                 if (packetSize <= 0 || packetSize >= socket_receive_Buffer.length)
                     continue;
                 if (rtp_receive_packet.getPayloadType() != 2) //确认负载类型为2
@@ -263,26 +366,25 @@ public class FfmpegServer {
                 int bMark = rtp_receive_packet.hasMarker() == true ? 1 : 0; //是否是最后一个包
                 byte[] data = rtp_receive_packet.getPayload();
                 //int frmSize = decode.PackH264Frame(decoder_handle, buffer, packetSize, bMark, (int) timestamp, sequence, frmbuf); //packer=拼帧器，frmbuf=帧缓存
-                Log.e(Config.TAG, "接收  sequence:" + sequence +"总长度："+rtp_receive_packet.getLength()+ " 包长度:" + data.length+"  "+rtp_receive_packet.getPayloadLength()+" "+Arrays.toString(data));
+//                LogUtil.e(Config.TAG, "接收  sequence:" + sequence +"总长度："+rtp_receive_packet.getLength()+ " 包长度:" + data.length+"  "+rtp_receive_packet.getPayloadLength()+" "+Arrays.toString(data));
                 receiveVideoCallback.receiveVideoStream(data, data.length, timestamp);
             }
 
-
-            if (rtp_socket != null) {
-                rtp_socket.close();
-                rtp_socket = null;
-            }
+//            if (rtp_socket != null) {
+//                rtp_socket.close();
+//                rtp_socket = null;
+//            }
 
         }
     }
 
     public void stopServer() {
-
+        isRunning = false;
         if (rtp_socket != null) {
             rtp_socket.close();
             rtp_socket = null;
         }
-        isRunning = false;
+
 
     }
 

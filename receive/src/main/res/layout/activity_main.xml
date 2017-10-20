@@ -37,4 +37,27 @@
         android:textColor="#ffffff"
         />
 
+
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/showdata"
+        android:layout_marginTop="10dp"
+        android:id="@+id/transVideo"
+        android:text="传输"
+
+        />
+
+    <SurfaceView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/transVideo"
+        android:id="@+id/video_surfaceview"
+
+        />
+
+
+
+
 </RelativeLayout>

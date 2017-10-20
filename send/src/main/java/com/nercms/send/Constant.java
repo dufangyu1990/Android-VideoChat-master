@@ -10,6 +10,7 @@ public class Constant {
     public static final int SERVER_PORT=8228;
     public static final String HEART_JUMP="1001";//心跳包回应
     public static final String QUERY_ORDER="1002";//查询指令回应
+    public static final String THROUGH_ORDER="0003";//穿透指令回应
 
 
 }

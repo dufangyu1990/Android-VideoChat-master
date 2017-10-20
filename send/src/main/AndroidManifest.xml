@@ -11,6 +11,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             </activity>
+
+        <activity android:name=".VideoActivity"/>
         <service android:name=".MyService"/>
     </application>
     <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
